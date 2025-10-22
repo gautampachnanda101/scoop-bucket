@@ -102,15 +102,43 @@ jobs:
 
       - name: Test cluster creation
         shell: pwsh
+        timeout-minutes: 15
         env:
           DOCKER_HOST: npipe:////./pipe/podman-machine-default
         run: |
           Write-Host "Creating k3d cluster with Podman (via Docker API on named pipe)..."
           Write-Host "DOCKER_HOST=$env:DOCKER_HOST"
-          k3d-local create --name test-cluster --verbose
+          Write-Host ""
+          Write-Host "Using minimal cluster config for CI (1 server, 0 agents, 10min timeout)..."
+
+          # Create cluster with minimal config for faster CI
+          k3d-local create --name test-cluster --servers 1 --agents 0 --timeout 600 --verbose
 
           $createExitCode = $LASTEXITCODE
           if ($createExitCode -ne 0) {
+            Write-Host ""
+            Write-Host "=== Cluster creation failed, checking k3d logs ==="
+            Write-Host ""
+
+            # Show k3d cluster info
+            Write-Host "k3d cluster list:"
+            k3d cluster list
+
+            Write-Host ""
+            Write-Host "Podman containers:"
+            podman ps -a
+
+            Write-Host ""
+            Write-Host "Checking k3d logs for test-cluster nodes..."
+
+            # Try to get logs from any existing nodes
+            $containers = podman ps -a --filter "label=app=k3d" --filter "label=k3d.cluster=test-cluster" --format "{{.Names}}"
+            foreach ($container in $containers) {
+              Write-Host ""
+              Write-Host "=== Logs for $container ==="
+              podman logs $container --tail 50 2>&1 | Write-Host
+            }
+
             Write-Error "Cluster creation failed with exit code $createExitCode"
             exit 1
           }
@@ -133,10 +161,10 @@ jobs:
             exit 1
           }
 
-          # Wait for cluster to be fully ready
+          # Wait for cluster to be fully ready with progress logging
           Write-Host ""
           Write-Host "Waiting for cluster to be ready..."
-          $maxAttempts = 30
+          $maxAttempts = 60
           $attempt = 0
           $ready = $false
 
@@ -144,23 +172,62 @@ jobs:
             $attempt++
             Write-Host "Checking cluster readiness (attempt $attempt/$maxAttempts)..."
 
+            # Show k3d node status
+            if ($attempt % 10 -eq 0) {
+              Write-Host ""
+              Write-Host "=== Current k3d nodes status ==="
+              k3d node list
+
+              Write-Host ""
+              Write-Host "=== Podman containers ==="
+              podman ps --filter "label=app=k3d"
+            }
+
             try {
               $nodes = kubectl get nodes --no-headers 2>&1
               if ($LASTEXITCODE -eq 0 -and $nodes) {
                 Write-Host "✓ Cluster is ready!"
                 kubectl get nodes
+                kubectl get pods -A
                 $ready = $true
                 break
+              } else {
+                Write-Host "kubectl not ready yet, checking k3s logs..."
+
+                # Get k3s logs from server node every 20 attempts
+                if ($attempt % 20 -eq 0) {
+                  Write-Host ""
+                  Write-Host "=== k3s server logs (last 20 lines) ==="
+                  podman logs k3d-test-cluster-server-0 --tail 20 2>&1 | Write-Host
+                }
               }
             } catch {
               Write-Host "Cluster not ready yet: $_"
             }
 
-            Start-Sleep -Seconds 3
+            Start-Sleep -Seconds 5
           }
 
           if (-not $ready) {
-            Write-Error "✗ Cluster failed to become ready after $maxAttempts attempts"
+            Write-Host ""
+            Write-Host "=== Final diagnostics before failing ==="
+            Write-Host ""
+            Write-Host "k3d cluster list:"
+            k3d cluster list
+
+            Write-Host ""
+            Write-Host "k3d node list:"
+            k3d node list
+
+            Write-Host ""
+            Write-Host "Podman ps:"
+            podman ps -a --filter "label=app=k3d"
+
+            Write-Host ""
+            Write-Host "k3s server logs (last 100 lines):"
+            podman logs k3d-test-cluster-server-0 --tail 100 2>&1 | Write-Host
+
+            Write-Error "✗ Cluster failed to become ready after $maxAttempts attempts ($(($maxAttempts * 5)) seconds)"
             exit 1
           }
 
