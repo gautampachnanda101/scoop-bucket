@@ -78,21 +78,61 @@ jobs:
           Write-Host "3. Testing delete --help"
           k3d-local delete --help
 
-      - name: Note about full cluster testing
-        if: always()
+      - name: Attempt cluster creation (may fail on Windows runners)
+        id: cluster_test
+        continue-on-error: true
+        run: |
+          Write-Host "=== Testing k3d cluster creation ==="
+          Write-Host ""
+          Write-Host "Attempting to create a minimal k3d cluster..."
+          Write-Host "Note: This requires Docker with Linux containers enabled"
+          Write-Host ""
+
+          k3d-local create --name test-cluster --servers 1 --agents 0 --timeout 300
+
+      - name: Verify cluster if creation succeeded
+        if: steps.cluster_test.outcome == 'success'
+        run: |
+          Write-Host "✓ Cluster creation succeeded!"
+          Write-Host ""
+          Write-Host "Checking cluster status..."
+          k3d-local status
+
+          Write-Host ""
+          Write-Host "Listing clusters..."
+          k3d-local k3d cluster list
+
+          Write-Host ""
+          Write-Host "Getting nodes..."
+          kubectl get nodes
+
+      - name: Test cluster deletion
+        if: steps.cluster_test.outcome == 'success'
+        run: |
+          Write-Host "=== Testing k3d cluster deletion ==="
+          Write-Host ""
+          k3d-local delete --name test-cluster
+
+          Write-Host ""
+          Write-Host "Verifying cluster is deleted..."
+          k3d-local k3d cluster list
+
+      - name: Note about Windows container limitations
+        if: steps.cluster_test.outcome == 'failure'
         run: |
           Write-Host ""
-          Write-Host "=== Note about Cluster Testing ==="
+          Write-Host "=== Cluster Creation Failed (Expected on Windows Runners) ==="
           Write-Host ""
-          Write-Host "GitHub Actions Windows runners do not support Linux containers."
-          Write-Host "Full k3d cluster creation/deletion testing is performed on:"
-          Write-Host "  - Linux runners (ubuntu-latest)"
-          Write-Host "  - macOS runners (macos-latest)"
+          Write-Host "GitHub Actions Windows runners only support Windows containers,"
+          Write-Host "not Linux containers. k3d requires Linux containers to run k3s."
           Write-Host ""
-          Write-Host "This is handled by the homebrew-tap verification workflow."
+          Write-Host "For Windows users:"
+          Write-Host "  - Install Docker Desktop with WSL2 backend"
+          Write-Host "  - Enable 'Use WSL 2 based engine' in settings"
+          Write-Host "  - Ensure Linux containers mode is active (not Windows containers)"
           Write-Host ""
-          Write-Host "For Windows users, k3d requires Docker Desktop with WSL2 backend"
-          Write-Host "or Linux containers mode enabled. See README for setup instructions."
+          Write-Host "Full cluster testing is performed on Linux/macOS runners"
+          Write-Host "via the homebrew-tap verification workflow."
           Write-Host ""
 
       - name: Uninstall
