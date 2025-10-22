@@ -41,6 +41,18 @@ k3d-local delete
 
 ## General Usage
 
+> macOS prerequisite: some scripts and tests call PowerShell (`pwsh`). If you're on macOS and `pwsh` isn't installed, install PowerShell via Homebrew:
+
+```bash
+brew install --cask powershell
+```
+
+You can quickly verify prerequisites for this repository by running the included prereq checker from a PowerShell session (or from macOS after installing PowerShell):
+
+```powershell
+pwsh ./scripts/check-prereqs.ps1
+```
+
 ### List Available Packages
 ```powershell
 scoop bucket add gautampachnanda101 https://github.com/gautampachnanda101/scoop-bucket
