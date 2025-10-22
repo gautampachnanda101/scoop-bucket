@@ -87,17 +87,45 @@ jobs:
             exit 1
           }
 
-          # Set k3d to use Podman runtime
-          Write-Host "Configuring k3d to use Podman..."
-          $env:K3D_RUNTIME = "podman"
-          echo "K3D_RUNTIME=podman" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          # Start Podman Docker-compatible socket (so k3d can talk to Podman via Docker API)
+          Write-Host "Starting Podman Docker-compatible API service..."
+          Start-Job -Name "PodmanSocket" -ScriptBlock {
+            podman system service --time=0 tcp://127.0.0.1:2375
+          } | Out-Null
+
+          # Wait for Podman socket to be available
+          Write-Host "Waiting for Podman Docker socket to be ready..."
+          $attempt = 0
+          while ($attempt -lt 15) {
+            $attempt++
+            try {
+              $response = Invoke-WebRequest -Uri "http://127.0.0.1:2375/_ping" -TimeoutSec 2 -UseBasicParsing 2>&1
+              if ($response.StatusCode -eq 200) {
+                Write-Host "✓ Podman Docker socket is ready"
+                break
+              }
+            } catch {
+              Write-Host "Podman socket not ready yet (attempt $attempt/15)..."
+            }
+            Start-Sleep -Seconds 2
+          }
+
+          # Configure Docker host to point to Podman socket
+          Write-Host "Configuring Docker host to use Podman..."
+          echo "DOCKER_HOST=tcp://127.0.0.1:2375" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $env:DOCKER_HOST = "tcp://127.0.0.1:2375"
+
+          # Verify Docker API via Podman is working
+          Write-Host "Verifying Docker API compatibility..."
+          docker version
 
       - name: Test cluster creation
         shell: pwsh
         env:
-          K3D_RUNTIME: podman
+          DOCKER_HOST: tcp://127.0.0.1:2375
         run: |
-          Write-Host "Creating k3d cluster with Podman runtime..."
+          Write-Host "Creating k3d cluster with Podman (via Docker API)..."
+          Write-Host "DOCKER_HOST=$env:DOCKER_HOST"
           k3d-local create --name test-cluster --verbose
 
           $createExitCode = $LASTEXITCODE
@@ -159,7 +187,7 @@ jobs:
         if: always()
         shell: pwsh
         env:
-          K3D_RUNTIME: podman
+          DOCKER_HOST: tcp://127.0.0.1:2375
         run: |
           Write-Host "Deleting k3d cluster..."
           k3d-local delete --name test-cluster
