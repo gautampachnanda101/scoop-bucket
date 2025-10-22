@@ -88,7 +88,7 @@ jobs:
           Write-Host "Note: This requires Docker with Linux containers enabled"
           Write-Host ""
 
-          k3d-local create --name test-cluster --servers 1 --agents 0 --timeout 300
+          k3d-local create --name test-cluster --servers 1 --agents 0 --timeout 300 --auto-install
 
       - name: Verify cluster if creation succeeded
         if: steps.cluster_test.outcome == 'success'
