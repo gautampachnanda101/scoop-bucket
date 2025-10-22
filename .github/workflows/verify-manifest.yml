@@ -87,44 +87,25 @@ jobs:
             exit 1
           }
 
-          # Start Podman Docker-compatible socket (so k3d can talk to Podman via Docker API)
-          Write-Host "Starting Podman Docker-compatible API service..."
-          Start-Job -Name "PodmanSocket" -ScriptBlock {
-            podman system service --time=0 tcp://127.0.0.1:2375
-          } | Out-Null
-
-          # Wait for Podman socket to be available
-          Write-Host "Waiting for Podman Docker socket to be ready..."
-          $attempt = 0
-          while ($attempt -lt 15) {
-            $attempt++
-            try {
-              $response = Invoke-WebRequest -Uri "http://127.0.0.1:2375/_ping" -TimeoutSec 2 -UseBasicParsing 2>&1
-              if ($response.StatusCode -eq 200) {
-                Write-Host "✓ Podman Docker socket is ready"
-                break
-              }
-            } catch {
-              Write-Host "Podman socket not ready yet (attempt $attempt/15)..."
-            }
-            Start-Sleep -Seconds 2
-          }
-
-          # Configure Docker host to point to Podman socket
-          Write-Host "Configuring Docker host to use Podman..."
-          echo "DOCKER_HOST=tcp://127.0.0.1:2375" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          $env:DOCKER_HOST = "tcp://127.0.0.1:2375"
+          # Podman machine already exposes Docker-compatible API on a named pipe
+          # Configure Docker host to use Podman's named pipe
+          Write-Host "Configuring Docker host to use Podman named pipe..."
+          $podmanPipe = "npipe:////./pipe/podman-machine-default"
+          echo "DOCKER_HOST=$podmanPipe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $env:DOCKER_HOST = $podmanPipe
 
           # Verify Docker API via Podman is working
-          Write-Host "Verifying Docker API compatibility..."
+          Write-Host "Verifying Docker API compatibility via Podman..."
           docker version
+
+          Write-Host "✓ Podman Docker API is ready!"
 
       - name: Test cluster creation
         shell: pwsh
         env:
-          DOCKER_HOST: tcp://127.0.0.1:2375
+          DOCKER_HOST: npipe:////./pipe/podman-machine-default
         run: |
-          Write-Host "Creating k3d cluster with Podman (via Docker API)..."
+          Write-Host "Creating k3d cluster with Podman (via Docker API on named pipe)..."
           Write-Host "DOCKER_HOST=$env:DOCKER_HOST"
           k3d-local create --name test-cluster --verbose
 
@@ -187,7 +168,7 @@ jobs:
         if: always()
         shell: pwsh
         env:
-          DOCKER_HOST: tcp://127.0.0.1:2375
+          DOCKER_HOST: npipe:////./pipe/podman-machine-default
         run: |
           Write-Host "Deleting k3d cluster..."
           k3d-local delete --name test-cluster
