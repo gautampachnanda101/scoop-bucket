@@ -1,12 +1,12 @@
 {
-    "version": "1.0.0-rc.2",
+    "version": "1.0.0-rc.3",
     "architecture": {
         "64bit": {
-            "url": "https://github.com/gautampachnanda101/scoop-bucket/releases/download/v1.0.0-rc.2/k3d-local_1.0.0-rc.2_Windows_x86_64.zip",
+            "url": "https://github.com/gautampachnanda101/scoop-bucket/releases/download/v1.0.0-rc.3/k3d-local_1.0.0-rc.3_Windows_x86_64.zip",
             "bin": [
                 "k3d-local.exe"
             ],
-            "hash": "7d30178914f8dcbe5910ced6347de492335524a8e2ac69f63c63b51ea3e1a106"
+            "hash": "3228d5e121223fa24b39d2956886521ceb730373a4fe9f7451afe127b24fca42"
         }
     },
     "homepage": "https://github.com/gautampachnanda101/local-cluster-k3d",
