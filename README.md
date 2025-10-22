@@ -8,13 +8,33 @@ Official Scoop bucket for various cross-platform development tools and utilities
 
 Cross-platform local Kubernetes development environment with k3d.
 
+**Prerequisites (Windows):**
+
+k3d requires a container runtime. We recommend **Podman** for Windows (better networking support than Docker Desktop):
+
+```powershell
+# Install Podman
+winget install -e --id RedHat.Podman
+
+# Initialize and start Podman machine
+podman machine init
+podman machine start
+
+# Configure environment to use Podman
+$Env:DOCKER_HOST = 'npipe:////./pipe/podman-machine-default'
+```
+
+> **Note:** Podman provides Docker-compatible API, so k3d works seamlessly. Docker Desktop can also be used but may have networking limitations on Windows.
+
 **Installation:**
+
 ```powershell
 scoop bucket add gautampachnanda101 https://github.com/gautampachnanda101/scoop-bucket
 scoop install k3d-local
 ```
 
 **Quick Start:**
+
 ```powershell
 # Create cluster with defaults
 k3d-local create
@@ -33,6 +53,7 @@ k3d-local delete
 ```
 
 **Links:**
+
 - [Repository](https://github.com/gautampachnanda101/local-cluster-k3d)
 - [Documentation](https://github.com/gautampachnanda101/local-cluster-k3d/tree/main/docs)
 - [Releases](https://github.com/gautampachnanda101/local-cluster-k3d/releases)
@@ -54,18 +75,21 @@ pwsh ./scripts/check-prereqs.ps1
 ```
 
 ### List Available Packages
+
 ```powershell
 scoop bucket add gautampachnanda101 https://github.com/gautampachnanda101/scoop-bucket
 scoop search gautampachnanda101/
 ```
 
 ### Update Packages
+
 ```powershell
 scoop update
 scoop update <package-name>
 ```
 
 ### Uninstall
+
 ```powershell
 scoop uninstall <package-name>
 scoop bucket rm gautampachnanda101  # Remove bucket entirely
