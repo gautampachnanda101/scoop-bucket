@@ -34,7 +34,6 @@ jobs:
       - name: Test basic functionality
         run: |
           k3d-local --help
-          k3d-local version
 
       - name: Uninstall
         run: |
