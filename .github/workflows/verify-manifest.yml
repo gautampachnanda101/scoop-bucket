@@ -41,61 +41,140 @@ jobs:
           scoop bucket add main
           scoop install k3d kubectl helm
 
-      - name: Setup Docker Desktop
+      - name: Setup Podman (better Windows networking than Docker Desktop)
         shell: pwsh
         run: |
-          # Check if Docker Desktop is available on Windows runners
-          if (Get-Command docker -ErrorAction SilentlyContinue) {
-            Write-Host "Docker is available"
-            docker version
-          } else {
-            Write-Host "Docker Desktop not found. Installing via winget..."
-            winget install -e --id Docker.DockerDesktop --silent --accept-package-agreements --accept-source-agreements
+          Write-Host "Installing Podman for Windows..."
 
-            # Wait for Docker Desktop to start (may take some time)
-            $maxAttempts = 30
-            $attempt = 0
-            while ($attempt -lt $maxAttempts) {
-              $attempt++
-              Write-Host "Waiting for Docker to start (attempt $attempt/$maxAttempts)..."
-              try {
-                docker version 2>&1 | Out-Null
-                if ($LASTEXITCODE -eq 0) {
-                  Write-Host "Docker is ready"
-                  break
-                }
-              } catch {
-                Write-Host "Docker not ready yet: $_"
-              }
-              Start-Sleep -Seconds 10
-            }
+          # Install Podman via winget
+          winget install -e --id RedHat.Podman --silent --accept-package-agreements --accept-source-agreements
 
-            if ($attempt -eq $maxAttempts) {
-              Write-Warning "Docker Desktop may not be fully ready, but continuing..."
-            }
+          # Add Podman to PATH for this session
+          $podmanPath = "C:\Program Files\RedHat\Podman"
+          if (Test-Path $podmanPath) {
+            $env:PATH = "$podmanPath;$env:PATH"
+            echo "$podmanPath" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
           }
+
+          # Initialize Podman machine
+          Write-Host "Initializing Podman machine..."
+          podman machine init
+
+          Write-Host "Starting Podman machine..."
+          podman machine start
+
+          # Wait for Podman to be ready
+          $maxAttempts = 20
+          $attempt = 0
+          while ($attempt -lt $maxAttempts) {
+            $attempt++
+            Write-Host "Waiting for Podman to be ready (attempt $attempt/$maxAttempts)..."
+            try {
+              podman version 2>&1 | Out-Null
+              if ($LASTEXITCODE -eq 0) {
+                Write-Host "✓ Podman is ready"
+                podman version
+                break
+              }
+            } catch {
+              Write-Host "Podman not ready yet: $_"
+            }
+            Start-Sleep -Seconds 5
+          }
+
+          if ($attempt -eq $maxAttempts) {
+            Write-Error "Podman failed to start after $maxAttempts attempts"
+            exit 1
+          }
+
+          # Set k3d to use Podman runtime
+          Write-Host "Configuring k3d to use Podman..."
+          $env:K3D_RUNTIME = "podman"
+          echo "K3D_RUNTIME=podman" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Test cluster creation
         shell: pwsh
+        env:
+          K3D_RUNTIME: podman
         run: |
-          Write-Host "Creating k3d cluster..."
-          k3d-local create --name test-cluster
+          Write-Host "Creating k3d cluster with Podman runtime..."
+          k3d-local create --name test-cluster --verbose
 
+          $createExitCode = $LASTEXITCODE
+          if ($createExitCode -ne 0) {
+            Write-Error "Cluster creation failed with exit code $createExitCode"
+            exit 1
+          }
+
+          Write-Host "✓ Cluster creation succeeded"
+          Write-Host ""
           Write-Host "Checking cluster status..."
           k3d-local status
 
           # Verify cluster exists using k3d command
-          k3d cluster list
+          Write-Host ""
+          Write-Host "Listing k3d clusters..."
+          $clusterList = k3d cluster list | Out-String
+          Write-Host $clusterList
+
+          if ($clusterList -match "test-cluster") {
+            Write-Host "✓ Cluster test-cluster found in k3d list"
+          } else {
+            Write-Error "✗ Cluster test-cluster NOT found in k3d list"
+            exit 1
+          }
+
+          # Wait for cluster to be fully ready
+          Write-Host ""
+          Write-Host "Waiting for cluster to be ready..."
+          $maxAttempts = 30
+          $attempt = 0
+          $ready = $false
+
+          while ($attempt -lt $maxAttempts) {
+            $attempt++
+            Write-Host "Checking cluster readiness (attempt $attempt/$maxAttempts)..."
+
+            try {
+              $nodes = kubectl get nodes --no-headers 2>&1
+              if ($LASTEXITCODE -eq 0 -and $nodes) {
+                Write-Host "✓ Cluster is ready!"
+                kubectl get nodes
+                $ready = $true
+                break
+              }
+            } catch {
+              Write-Host "Cluster not ready yet: $_"
+            }
+
+            Start-Sleep -Seconds 3
+          }
+
+          if (-not $ready) {
+            Write-Error "✗ Cluster failed to become ready after $maxAttempts attempts"
+            exit 1
+          }
 
       - name: Test cluster deletion
         if: always()
         shell: pwsh
+        env:
+          K3D_RUNTIME: podman
         run: |
           Write-Host "Deleting k3d cluster..."
           k3d-local delete --name test-cluster
 
           # Verify cluster is deleted
-          k3d cluster list
+          Write-Host ""
+          Write-Host "Verifying cluster deletion..."
+          $clusterList = k3d cluster list | Out-String
+          Write-Host $clusterList
+
+          if ($clusterList -notmatch "test-cluster") {
+            Write-Host "✓ Cluster test-cluster successfully deleted"
+          } else {
+            Write-Warning "Cluster test-cluster may still exist"
+          }
 
       - name: Uninstall
         if: always()
