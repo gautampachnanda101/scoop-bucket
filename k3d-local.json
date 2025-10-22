@@ -1,0 +1,15 @@
+{
+    "version": "1.0.0",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/gautampachnanda101/local-cluster-k3d/releases/download/v1.0.0/k3d-local_1.0.0_Windows_x86_64.zip",
+            "bin": [
+                "k3d-local.exe"
+            ],
+            "hash": "977df00a7efe1a395368c71f8573a996b268e6e9239842768344fcf92e82fe7d"
+        }
+    },
+    "homepage": "https://github.com/gautampachnanda101/local-cluster-k3d",
+    "license": "MIT",
+    "description": "Cross-platform CLI for managing local k3d Kubernetes clusters"
+}
