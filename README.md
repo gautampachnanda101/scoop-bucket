@@ -10,21 +10,19 @@ Cross-platform local Kubernetes development environment with k3d.
 
 **Prerequisites (Windows):**
 
-k3d requires a container runtime. We recommend **Podman** for Windows (better networking support than Docker Desktop):
+k3d requires **Docker Desktop** with Linux containers mode enabled:
 
 ```powershell
-# Install Podman
-winget install -e --id RedHat.Podman
+# Install Docker Desktop via winget
+winget install -e --id Docker.DockerDesktop
 
-# Initialize and start Podman machine
-podman machine init
-podman machine start
-
-# Configure environment to use Podman
-$Env:DOCKER_HOST = 'npipe:////./pipe/podman-machine-default'
+# After installation, ensure "Use WSL 2 based engine" is enabled in Docker Desktop settings
+# Docker must be running with Linux containers mode (not Windows containers)
 ```
 
-> **Note:** Podman provides Docker-compatible API, so k3d works seamlessly. Docker Desktop can also be used but may have networking limitations on Windows.
+> **Note:** k3d runs Kubernetes (k3s) in Linux containers. On Windows, Docker Desktop with WSL2 backend is required.
+>
+> **For Linux users:** You can use Podman instead of Docker as an alternative container runtime.
 
 **Installation:**
 
@@ -50,6 +48,22 @@ k3d-local status
 
 # Delete cluster
 k3d-local delete
+
+# Advanced: Use k3d pass-through for direct k3d access
+k3d-local k3d cluster list
+k3d-local k3d node list
+k3d-local k3d version
+```
+
+**Advanced Usage - k3d Pass-through:**
+
+k3d-local provides direct access to k3d commands via pass-through mode:
+
+```powershell
+# Any k3d command works
+k3d-local k3d cluster create mycluster --agents 2
+k3d-local k3d cluster delete mycluster
+k3d-local k3d registry create myregistry
 ```
 
 **Links:**
