@@ -28,6 +28,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check prerequisites
+        # Run the repository prereq checker so the job fails early with a clear message when pwsh or expected tooling is missing.
+        shell: pwsh
+        run: |
+          if (Test-Path './scripts/check-prereqs.ps1') {
+            Write-Host "Running prereq checker..."
+            & './scripts/check-prereqs.ps1'
+          } else {
+            Write-Host "Prereq checker script not found at ./scripts/check-prereqs.ps1; skipping prereq check."
+          }
+
       - name: Determine and normalize tag (supports manual override via workflow_dispatch input)
         id: tag
         shell: pwsh
