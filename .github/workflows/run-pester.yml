@@ -19,11 +19,33 @@ jobs:
         run: |
           Install-Module Pester -Force -Scope CurrentUser -SkipPublisherCheck -ErrorAction Stop
 
-      - name: Run tests
+      - name: Run tests and capture output
         shell: pwsh
         run: |
-          $tests = Get-ChildItem -Path ./tests -Filter *.Tests.ps1 -Recurse
-          if ($tests.Count -eq 0) { Write-Host 'No tests found'; exit 0 }
-          foreach ($t in $tests) { Write-Host "Running $($t.FullName)" }
-          Invoke-Pester -Script './tests/*.Tests.ps1' -EnableExit -Output Detailed
+          $outFile = "$env:GITHUB_WORKSPACE\pester-output.txt"
+          if (Test-Path $outFile) { Remove-Item $outFile -Force }
+          Start-Transcript -Path $outFile -Force
+          try {
+            Write-Host "Discovering tests..."
+            $tests = Get-ChildItem -Path ./tests -Filter *.Tests.ps1 -Recurse
+            if ($tests.Count -eq 0) { Write-Host 'No tests found'; Stop-Transcript; exit 0 }
+            foreach ($t in $tests) { Write-Host "Running $($t.FullName)" }
 
+            # Invoke-Pester will throw/exit non-zero on failures when -EnableExit is used
+            Invoke-Pester -Script './tests/*.Tests.ps1' -EnableExit -Output Detailed
+            $rc = 0
+          } catch {
+            $rc = 1
+            Write-Host "Pester execution failed: $_"
+          } finally {
+            Stop-Transcript
+          }
+          Write-Host "Pester transcript saved to: $outFile"
+          exit $rc
+
+      - name: Upload Pester logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pester-output
+          path: pester-output.txt
