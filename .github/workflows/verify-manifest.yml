@@ -1,8 +1,0 @@
-name: disabled-verify-manifest
-
-# Workflow intentionally disabled/removed per repository request
-# Placeholder file kept for history.
-
-on: []
-
-jobs: {}

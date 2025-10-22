@@ -1,7 +1,0 @@
-name: disabled-upstream-poller
-
-# Workflow intentionally removed per request. Kept as placeholder.
-
-on: []
-
-jobs: {}

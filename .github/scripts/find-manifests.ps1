@@ -48,4 +48,3 @@ if ($AsJson) {
 } else {
   foreach ($m in $matches) { $m | ConvertTo-Json -Compress; "" }
 }
-

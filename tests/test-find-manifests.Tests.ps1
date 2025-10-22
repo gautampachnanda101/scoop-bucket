@@ -8,7 +8,8 @@ Describe 'find-manifests.ps1' {
     Push-Location $tempDir
     try {
       # Act
-      $out = & pwsh -NoProfile -NoLogo -NonInteractive -File "../../.github/scripts/find-manifests.ps1" -Version '1.2.3' -AsJson
+      # Use -Command so -Version/-AsJson are passed to the script (pwsh.exe has its own -Version parameter)
+      $out = & pwsh -NoProfile -NoLogo -NonInteractive -Command "& { & '../../.github/scripts/find-manifests.ps1' -Version '1.2.3' -AsJson }"
       $matches = $out | ConvertFrom-Json
 
       # Assert
@@ -24,7 +25,7 @@ Describe 'find-manifests.ps1' {
     $tempDir = Join-Path $PSScriptRoot 'fixtures'
     Push-Location $tempDir
     try {
-      $out = & pwsh -NoProfile -NoLogo -NonInteractive -File "../../.github/scripts/find-manifests.ps1" -Version '2.0.0' -AsJson
+      $out = & pwsh -NoProfile -NoLogo -NonInteractive -Command "& { & '../../.github/scripts/find-manifests.ps1' -Version '2.0.0' -AsJson }"
       $matches = $out | ConvertFrom-Json
       $matches.Count | Should -Be 0
     } finally {
@@ -32,4 +33,3 @@ Describe 'find-manifests.ps1' {
     }
   }
 }
-

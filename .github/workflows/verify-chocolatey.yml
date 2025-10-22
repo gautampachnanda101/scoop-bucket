@@ -1,8 +1,0 @@
-name: disabled-verify-chocolatey
-
-# Workflow intentionally disabled/removed per repository request
-# This file left as a placeholder to show the previous verify-chocolatey workflow was removed.
-
-on: []
-
-jobs: {}

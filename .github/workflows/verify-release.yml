@@ -57,7 +57,9 @@ jobs:
             exit 1
           }
 
-          $out = & pwsh -NoProfile -NoLogo -NonInteractive -File .github/scripts/find-manifests.ps1 -Version $norm -AsJson
+          # Call the helper script directly within the current pwsh process so that the -Version parameter is passed to the script,
+          # not to pwsh.exe (pwsh.exe has its own -Version parameter which causes a ParameterSet conflict).
+          $out = & './.github/scripts/find-manifests.ps1' -Version $norm -AsJson
           if ($LASTEXITCODE -ne 0) { Write-Error "find-manifests script failed"; exit 1 }
           if (-not $out) { Write-Error "No matches returned by find-manifests"; exit 1 }
 
