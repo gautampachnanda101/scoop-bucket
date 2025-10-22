@@ -1,42 +1,8 @@
-name: Verify Scoop Manifest
+name: disabled-verify-manifest
 
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-  workflow_dispatch:
+# Workflow intentionally disabled/removed per repository request
+# Placeholder file kept for history.
 
-jobs:
-  verify-installation:
-    name: Test Scoop Installation
-    runs-on: windows-latest
+on: []
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Scoop
-        run: |
-          iex "& {$(irm get.scoop.sh)} -RunAsAdmin"
-          echo "$env:USERPROFILE\scoop\shims" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: Add bucket and install k3d-local
-        run: |
-          scoop bucket add gautampachnanda101 https://github.com/gautampachnanda101/scoop-bucket
-          scoop install k3d-local
-
-      - name: Verify installation
-        run: |
-          Get-Command k3d-local
-          k3d-local --version
-
-      - name: Test basic functionality
-        run: |
-          k3d-local --help
-          k3d-local version
-
-      - name: Uninstall
-        run: |
-          scoop uninstall k3d-local
-          scoop bucket rm gautampachnanda101
+jobs: {}
