@@ -35,7 +35,70 @@ jobs:
         run: |
           k3d-local --help
 
+      - name: Install cluster prerequisites
+        run: |
+          # Install k3d, kubectl, and helm for cluster operations
+          scoop bucket add main
+          scoop install k3d kubectl helm
+
+      - name: Setup Docker Desktop
+        shell: pwsh
+        run: |
+          # Check if Docker Desktop is available on Windows runners
+          if (Get-Command docker -ErrorAction SilentlyContinue) {
+            Write-Host "Docker is available"
+            docker version
+          } else {
+            Write-Host "Docker Desktop not found. Installing via winget..."
+            winget install -e --id Docker.DockerDesktop --silent --accept-package-agreements --accept-source-agreements
+
+            # Wait for Docker Desktop to start (may take some time)
+            $maxAttempts = 30
+            $attempt = 0
+            while ($attempt -lt $maxAttempts) {
+              $attempt++
+              Write-Host "Waiting for Docker to start (attempt $attempt/$maxAttempts)..."
+              try {
+                docker version 2>&1 | Out-Null
+                if ($LASTEXITCODE -eq 0) {
+                  Write-Host "Docker is ready"
+                  break
+                }
+              } catch {
+                Write-Host "Docker not ready yet: $_"
+              }
+              Start-Sleep -Seconds 10
+            }
+
+            if ($attempt -eq $maxAttempts) {
+              Write-Warning "Docker Desktop may not be fully ready, but continuing..."
+            }
+          }
+
+      - name: Test cluster creation
+        shell: pwsh
+        run: |
+          Write-Host "Creating k3d cluster..."
+          k3d-local create --name test-cluster
+
+          Write-Host "Checking cluster status..."
+          k3d-local status
+
+          # Verify cluster exists using k3d command
+          k3d cluster list
+
+      - name: Test cluster deletion
+        if: always()
+        shell: pwsh
+        run: |
+          Write-Host "Deleting k3d cluster..."
+          k3d-local delete --name test-cluster
+
+          # Verify cluster is deleted
+          k3d cluster list
+
       - name: Uninstall
+        if: always()
         run: |
           scoop uninstall k3d-local
           scoop bucket rm gautampachnanda101
