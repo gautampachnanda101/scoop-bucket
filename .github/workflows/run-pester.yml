@@ -25,6 +25,19 @@ jobs:
             Write-Host "Prereq checker script not found at ./scripts/check-prereqs.ps1; skipping prereq check."
           }
 
+      - name: Diagnostics: print pwsh/host info
+        shell: pwsh
+        run: |
+          Write-Host "=== Runner diagnostics (pwsh/PowerShell info) ==="
+          try {
+            Write-Host "pwsh --version (if pwsh available):"
+            pwsh --version 2>&1 | Write-Host
+          } catch {
+            Write-Host "pwsh --version not available or failed: $_"
+          }
+          Write-Host "PSVersionTable:"; $PSVersionTable | Format-List | Out-String | Write-Host
+          Write-Host "Get-Host:"; Get-Host | Format-List | Out-String | Write-Host
+
       - name: Install PowerShell modules (Pester)
         shell: pwsh
         run: |
