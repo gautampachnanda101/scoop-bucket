@@ -6,7 +6,7 @@
             "bin": [
                 "k3d-local.exe"
             ],
-            "hash": "a1f22a871a1963fb8aaf2b24df55613447dedddd276e80e314dfd795f48f8f74"
+            "hash": "b1d6eebd825f4a6f0d5935e3d0d7f5602ce9b3a0c080f7010c32858ffca6170a"
         }
     },
     "homepage": "https://github.com/gautampachnanda101/local-cluster-k3d",
