@@ -1,12 +1,12 @@
 {
-  "version": "0.1.0-rc23",
+  "version": "0.1.0-rc24",
   "description": "Local-first encrypted prompt intelligence CLI for AI coding assistants",
   "homepage": "https://github.com/gautampachnanda101/prompt-detective",
   "license": "Proprietary",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.1.0-rc23/promptx_Windows_x86_64.zip",
-      "hash": "ecfdeb1a8cdf1ce63fb0980e06c3c30cd7e820bfa16f9dafee386b620f0c0375"
+      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.1.0-rc24/promptx_Windows_x86_64.zip",
+      "hash": "da329243f07aae5d66cacbcd2ec00efa15f75aab0860cc58c093af2a2b78cb70"
     }
   },
   "bin": "promptx.exe",
