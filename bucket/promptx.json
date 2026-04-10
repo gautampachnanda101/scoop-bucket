@@ -1,0 +1,29 @@
+{
+  "version": "0.1.0-rc18",
+  "description": "Local-first encrypted prompt intelligence CLI for AI coding assistants",
+  "homepage": "https://github.com/gautampachnanda101/prompt-detective",
+  "license": "Proprietary",
+  "architecture": {
+    "64bit": {
+      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.1.0-rc18/promptx_Windows_x86_64.zip",
+      "hash": "22215c1812cbda4def63d08f6f5e062a4fd70c8928f86528abf76b0a876021ea"
+    }
+  },
+  "bin": "promptx.exe",
+  "post_install": [
+    "Write-Host ''",
+    "Write-Host 'Promptx installed. Add your passkey to your shell profile:'",
+    "Write-Host '  [System.Environment]::SetEnvironmentVariable(\"PROMPTX_PASSKEY\", \"your-passkey\", \"User\")'",
+    "Write-Host 'Then run: promptx setup'"
+  ],
+  "checkver": {
+    "github": "https://github.com/gautampachnanda101/homebrew-tap"
+  },
+  "autoupdate": {
+    "architecture": {
+      "64bit": {
+        "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v$version/promptx_Windows_x86_64.zip"
+      }
+    }
+  }
+}
