@@ -1,12 +1,12 @@
 {
-  "version": "0.1.0-rc58",
+  "version": "0.1.0-rc59",
   "description": "Local-first encrypted prompt intelligence CLI for AI coding assistants",
   "homepage": "https://github.com/gautampachnanda101/prompt-detective",
   "license": "Proprietary",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.1.0-rc58/promptx_Windows_x86_64.zip",
-      "hash": "76a9ab6a87c505208e0bec31419a5a54520b20e6db700ae6d1c854cb1f595945"
+      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.1.0-rc59/promptx_Windows_x86_64.zip",
+      "hash": "55bd56338b3bf0fb719c8345cee5fd256315da854508354a16f7df79ec442a35"
     }
   },
   "bin": "promptx.exe",
@@ -16,7 +16,7 @@
     "Write-Host '  [System.Environment]::SetEnvironmentVariable(\"PROMPTX_PASSKEY\", \"your-passkey\", \"User\")'",
     "Write-Host 'Then run: promptx setup'",
     "Write-Host ''",
-    "$vsix = \"$dir/promptx-vscode-0.1.0-rc58.vsix\"",
+    "$vsix = \"$dir/promptx-vscode-0.1.0-rc59.vsix\"",
     "if ((Test-Path $vsix) -and (Get-Command code -ErrorAction SilentlyContinue)) {",
     "    code --install-extension $vsix",
     "    Write-Host 'Promptx VS Code extension installed.'",
