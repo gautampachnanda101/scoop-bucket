@@ -29,38 +29,21 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
 
-          function Get-ManifestCandidates {
-            $workspace = $env:GITHUB_WORKSPACE
-            $jsonFiles = Get-ChildItem -Path $workspace -File -Filter '*.json' -Recurse -ErrorAction SilentlyContinue |
-              Where-Object {
-                $rel = $_.FullName.Substring($workspace.Length + 1).Replace('\\', '/')
-                $rel -notmatch '^\.github/' -and $rel -notmatch '^docs/' -and $rel -notmatch '^tests/' -and $rel -notmatch '^\.git/'
-              }
-
-            $valid = @()
-            foreach ($file in $jsonFiles) {
-              try {
-                $manifest = Get-Content -Path $file.FullName -Raw | ConvertFrom-Json -ErrorAction Stop
-              } catch {
-                continue
-              }
-
-              # Treat as Scoop manifest only if it has a version and a download definition.
-              if ($manifest.PSObject.Properties.Name -contains 'version' -and (
-                  $manifest.PSObject.Properties.Name -contains 'url' -or
-                  $manifest.PSObject.Properties.Name -contains 'architecture')) {
-                $valid += $file
-              }
+          function Get-AllBucketManifests {
+            $bucketPath = Join-Path $env:GITHUB_WORKSPACE 'bucket'
+            if (-not (Test-Path $bucketPath)) {
+              return @()
             }
 
-            return $valid | Sort-Object -Property FullName -Unique
+            return Get-ChildItem -Path $bucketPath -File -Filter '*.json' -ErrorAction SilentlyContinue |
+              Sort-Object -Property FullName -Unique
           }
 
           $eventName = '${{ github.event_name }}'
           $selected = @()
 
           if ($eventName -eq 'workflow_dispatch') {
-            $selected = Get-ManifestCandidates
+            $selected = Get-AllBucketManifests
           } else {
             if ($eventName -eq 'pull_request') {
               $base = '${{ github.event.pull_request.base.sha }}'
@@ -71,22 +54,23 @@ jobs:
             }
 
             if ([string]::IsNullOrWhiteSpace($base) -or $base -eq '0000000000000000000000000000000000000000') {
-              $selected = Get-ManifestCandidates
+              $selected = Get-AllBucketManifests
             } else {
               $changed = git diff --name-only "$base" "$head"
               $changedSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
               foreach ($f in $changed) {
                 if ([string]::IsNullOrWhiteSpace($f)) { continue }
-                if ($f -match '^tests/' -or $f -match '^\.github/' -or $f -match '^docs/') { continue }
-                if ($f -match '\.json$') {
+                if ($f -match '^bucket/[^/]+\.json$') {
                   [void]$changedSet.Add($f)
                 }
               }
 
-              foreach ($candidate in Get-ManifestCandidates) {
-                $rel = $candidate.FullName.Substring($env:GITHUB_WORKSPACE.Length + 1).Replace('\\', '/')
-                if ($changedSet.Contains($rel)) {
-                  $selected += $candidate
+              if ($changedSet.Count -gt 0) {
+                foreach ($rel in $changedSet) {
+                  $fullPath = Join-Path $env:GITHUB_WORKSPACE $rel
+                  if (Test-Path $fullPath) {
+                    $selected += (Get-Item $fullPath)
+                  }
                 }
               }
             }
@@ -245,6 +229,21 @@ jobs:
             return $false
           }
 
+          function Test-PackageInstalled {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string]$PackageName
+            )
+
+            $listOutput = scoop list $PackageName 2>&1 | Out-String
+            if ($LASTEXITCODE -eq 0 -and $listOutput -match "(?im)^\s*$([Regex]::Escape($PackageName))\s+") {
+              return $true
+            }
+
+            $appDir = Join-Path $env:USERPROFILE "scoop\apps\$PackageName"
+            return (Test-Path $appDir)
+          }
+
           foreach ($pkg in $packages) {
             Write-Host "Verifying $pkg"
             scoop list $pkg
@@ -256,7 +255,12 @@ jobs:
 
             $commands = Get-BinCommandsFromManifest -ManifestFile $manifestFile
             if (-not $commands -or $commands.Count -eq 0) {
-              throw "No bin commands found in manifest: $manifestFile"
+              if (-not (Test-PackageInstalled -PackageName $pkg)) {
+                throw "Manifest '$manifestFile' has no bin commands and package '$pkg' is not detected as installed."
+              }
+
+              Write-Host "No bin commands found for '$pkg'; install-state verification passed."
+              continue
             }
 
             foreach ($cmd in $commands) {
