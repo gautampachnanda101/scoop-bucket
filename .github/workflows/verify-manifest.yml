@@ -39,7 +39,7 @@ jobs:
               $bucketJson = Get-ChildItem -Path $bucketPath -File -Filter '*.json' -ErrorAction SilentlyContinue
             }
 
-            return @($rootJson + $bucketJson) | Sort-Object -Property FullName -Unique
+            return (@($rootJson) + @($bucketJson)) | Sort-Object -Property FullName -Unique
           }
 
           function Test-IsScoopManifest {
