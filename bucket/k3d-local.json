@@ -11,5 +11,15 @@
     },
     "homepage": "https://github.com/gautampachnanda101/local-cluster-k3d",
     "license": "MIT",
-    "description": "Cross-platform CLI for managing local k3d Kubernetes clusters"
+    "description": "Cross-platform CLI for managing local k3d Kubernetes clusters",
+    "checkver": {
+        "github": "https://github.com/gautampachnanda101/scoop-bucket"
+    },
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/gautampachnanda101/scoop-bucket/releases/download/v$version/k3d-local_$version_Windows_x86_64.zip"
+            }
+        }
+    }
 }

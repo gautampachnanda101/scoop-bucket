@@ -1,0 +1,62 @@
+name: Sync Manifests On Release
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to sync (for manual runs)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve release tag
+        id: tag
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            echo "value=${{ github.event.release.tag_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Sync manifests from release assets
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ./scripts/sync-manifests-from-release.ps1 `
+            -Repository '${{ github.repository }}' `
+            -TagName '${{ steps.tag.outputs.value }}'
+
+      - name: Refresh supported docs
+        shell: pwsh
+        run: |
+          ./scripts/generate-supported-packages-doc.ps1
+
+      - name: Commit and push updates
+        shell: bash
+        run: |
+          if git diff --quiet -- bucket docs/supported-packages.md; then
+            echo "No manifest changes detected."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add bucket/*.json docs/supported-packages.md
+          git commit -m "chore: sync manifests from release ${{ steps.tag.outputs.value }}"
+          git push
