@@ -25,6 +25,18 @@ foreach ($asset in $release.assets) {
     $assetMap[$asset.name.ToLowerInvariant()] = $asset
 }
 
+function Get-RepoFromGitHubUrl {
+    param([string]$Url)
+
+    if ([string]::IsNullOrWhiteSpace($Url)) { return '' }
+    $repoMatch = [regex]::Match($Url, '^https://github\.com/([^/]+/[^/]+)')
+    if ($repoMatch.Success) {
+        return $repoMatch.Groups[1].Value
+    }
+
+    return ''
+}
+
 function Get-ManifestCandidates {
     param([string]$Root)
 
@@ -82,6 +94,15 @@ foreach ($manifestFile in Get-ManifestCandidates -Root $RepoRoot) {
     }
 
     if (-not $manifest.ContainsKey('version')) { continue }
+
+    if (-not $manifest.ContainsKey('checkver') -or -not $manifest.checkver.ContainsKey('github')) {
+        continue
+    }
+
+    $manifestRepo = Get-RepoFromGitHubUrl -Url ([string]$manifest.checkver.github)
+    if ($manifestRepo -ne $Repository) {
+        continue
+    }
 
     $packageName = [System.IO.Path]::GetFileNameWithoutExtension($manifestFile.Name)
     $matchingAsset = Get-MatchingZipAsset -PackageName $packageName -Assets $release.assets

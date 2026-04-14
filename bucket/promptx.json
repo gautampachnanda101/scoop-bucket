@@ -5,7 +5,7 @@
   "license": "Proprietary",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/gautampachnanda101/scoop-bucket/releases/download/v0.1.0-rc62/promptx_Windows_x86_64.zip",
+      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.1.0-rc62/promptx_Windows_x86_64.zip",
       "hash": "03f427946c118eacecea885b4cdfba3443cb84daecbd82755cc83c78def200ec"
     }
   },
@@ -26,12 +26,12 @@
     "}"
   ],
   "checkver": {
-    "github": "https://github.com/gautampachnanda101/scoop-bucket"
+    "github": "https://github.com/gautampachnanda101/homebrew-tap"
   },
   "autoupdate": {
     "architecture": {
       "64bit": {
-        "url": "https://github.com/gautampachnanda101/scoop-bucket/releases/download/v$version/promptx_Windows_x86_64.zip"
+        "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v$version/promptx_Windows_x86_64.zip"
       }
     }
   }
