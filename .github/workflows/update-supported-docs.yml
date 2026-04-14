@@ -1,0 +1,43 @@
+name: Update Supported Docs
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '*.json'
+      - 'bucket/*.json'
+      - 'scripts/generate-supported-packages-doc.ps1'
+      - '.github/workflows/update-supported-docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate supported packages docs
+        shell: pwsh
+        run: |
+          ./scripts/generate-supported-packages-doc.ps1
+
+      - name: Commit docs if changed
+        shell: bash
+        run: |
+          if git diff --quiet -- docs/supported-packages.md README.md; then
+            echo "No docs changes detected."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/supported-packages.md README.md
+          git commit -m "docs: refresh supported packages TOC"
+          git push

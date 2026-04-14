@@ -42,6 +42,42 @@ jobs:
             return @($rootJson + $bucketJson) | Sort-Object -Property FullName -Unique
           }
 
+          function Test-IsScoopManifest {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string]$ManifestFile
+            )
+
+            try {
+              $manifest = Get-Content -Path $ManifestFile -Raw | ConvertFrom-Json -ErrorAction Stop
+            } catch {
+              return $false
+            }
+
+            $hasVersion = $manifest.PSObject.Properties.Name -contains 'version'
+            $hasUrl = $manifest.PSObject.Properties.Name -contains 'url'
+            $hasArch = $manifest.PSObject.Properties.Name -contains 'architecture'
+
+            if (-not $hasVersion) { return $false }
+            if ($hasUrl) { return $true }
+            if (-not $hasArch) { return $false }
+
+            foreach ($archProp in $manifest.architecture.PSObject.Properties) {
+              $archValue = $archProp.Value
+              if ($null -eq $archValue) { continue }
+              if ($archValue.PSObject.Properties.Name -contains 'url') {
+                $u = $archValue.url
+                if ($u -is [System.Array]) {
+                  if ($u.Count -gt 0) { return $true }
+                } elseif (-not [string]::IsNullOrWhiteSpace([string]$u)) {
+                  return $true
+                }
+              }
+            }
+
+            return $false
+          }
+
           $eventName = '${{ github.event_name }}'
           $selected = @()
 
@@ -61,14 +97,22 @@ jobs:
             } else {
               $changed = git diff --name-only "$base" "$head"
               $changedSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+              $workflowChanged = $false
               foreach ($f in $changed) {
                 if ([string]::IsNullOrWhiteSpace($f)) { continue }
+                if ($f -eq '.github/workflows/verify-manifest.yml') {
+                  $workflowChanged = $true
+                  continue
+                }
                 if ($f -match '^bucket/[^/]+\.json$' -or $f -match '^[^/]+\.json$') {
                   [void]$changedSet.Add($f)
                 }
               }
 
-              if ($changedSet.Count -gt 0) {
+              if ($workflowChanged) {
+                Write-Host 'Workflow file changed; verifying all manifests.'
+                $selected = Get-AllManifestCandidates
+              } elseif ($changedSet.Count -gt 0) {
                 foreach ($rel in $changedSet) {
                   $fullPath = Join-Path $env:GITHUB_WORKSPACE $rel
                   if (Test-Path $fullPath) {
@@ -80,8 +124,23 @@ jobs:
           }
 
           $selected = $selected | Sort-Object -Property FullName -Unique
+          $supported = @()
+          $skipped = @()
+          foreach ($manifest in $selected) {
+            if (Test-IsScoopManifest -ManifestFile $manifest.FullName) {
+              $supported += $manifest
+            } else {
+              $skipped += [System.IO.Path]::GetFileName($manifest.FullName)
+            }
+          }
+
+          if ($skipped.Count -gt 0) {
+            Write-Host "Skipping files that are not Scoop manifests: $($skipped -join ', ')"
+          }
+
+          $selected = $supported | Sort-Object -Property FullName -Unique
           if (-not $selected -or $selected.Count -eq 0) {
-            Write-Host 'No changed manifests detected. Skipping package verification.'
+            Write-Host 'No supported Scoop manifests detected in this change. Skipping package verification.'
             "skip=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
             "packages=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
             exit 0

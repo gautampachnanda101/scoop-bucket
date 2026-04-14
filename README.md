@@ -4,6 +4,10 @@ Official Scoop bucket for various cross-platform development tools and utilities
 
 ## Available Packages
 
+The canonical supported package list is auto-detected from manifests in this repo and published with a TOC here:
+
+- [Supported Scoop Packages](docs/supported-packages.md)
+
 ### k3d-local
 
 Cross-platform local Kubernetes development environment with k3d.
