@@ -6,7 +6,7 @@
   "architecture": {
     "64bit": {
       "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.1.0-rc1/vaultx_Windows_x86_64.zip",
-      "hash": "acc5a9760a6a8559faffa2e05634cfdee22239963e580c3a29a2f86d7479b2bb"
+      "hash": "40a3d100b026adfbca4945113a11e5db3389ed131d20f2241bf0fbff9db1ef66"
     }
   },
   "bin": "vaultx.exe",
