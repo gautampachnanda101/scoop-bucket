@@ -118,21 +118,25 @@ jobs:
           Write-Host "Selected manifests: $($packages -join ', ')"
 
           "skip=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "bucket_path=$stagingRoot" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "bucket_manifest_dir=$bucketDir" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "packages=$($packages -join ' ')" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-      - name: Add local test bucket and install packages
+      - name: Install manifests directly from local files
         if: steps.manifests.outputs.skip != 'true'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          $manifestDir = '${{ steps.manifests.outputs.bucket_manifest_dir }}'
           $packages = '${{ steps.manifests.outputs.packages }}'.Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)
-
-          scoop bucket add ci-bucket '${{ steps.manifests.outputs.bucket_path }}'
 
           foreach ($pkg in $packages) {
             Write-Host "Installing $pkg"
-            scoop install $pkg
+            $manifestFile = Join-Path $manifestDir "$pkg.json"
+            if (-not (Test-Path $manifestFile)) {
+              throw "Manifest file not found: $manifestFile"
+            }
+
+            scoop install $manifestFile
           }
 
       - name: Verify installed packages
@@ -140,23 +144,142 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          $manifestDir = '${{ steps.manifests.outputs.bucket_manifest_dir }}'
           $packages = '${{ steps.manifests.outputs.packages }}'.Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)
+
+          function Get-BinCommandsFromManifest {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string]$ManifestFile
+            )
+
+            $manifest = Get-Content -Path $ManifestFile -Raw | ConvertFrom-Json -ErrorAction Stop
+            $commands = @()
+
+            function Add-CommandName {
+              param([string]$Name)
+              if ([string]::IsNullOrWhiteSpace($Name)) { return }
+              $trimmed = $Name.Trim()
+              if ([string]::IsNullOrWhiteSpace($trimmed)) { return }
+
+              $leaf = Split-Path -Path $trimmed -Leaf
+              $stem = [System.IO.Path]::GetFileNameWithoutExtension($leaf)
+              if (-not [string]::IsNullOrWhiteSpace($stem)) {
+                $script:commands += $stem
+              }
+            }
+
+            function Add-BinEntry {
+              param($Entry)
+              if ($null -eq $Entry) { return }
+
+              if ($Entry -is [string]) {
+                Add-CommandName -Name $Entry
+                return
+              }
+
+              if ($Entry -is [System.Array]) {
+                if ($Entry.Count -ge 2 -and -not [string]::IsNullOrWhiteSpace([string]$Entry[1])) {
+                  Add-CommandName -Name ([string]$Entry[1])
+                } elseif ($Entry.Count -ge 1) {
+                  Add-CommandName -Name ([string]$Entry[0])
+                }
+              }
+            }
+
+            if ($manifest.PSObject.Properties.Name -contains 'bin') {
+              $bin = $manifest.bin
+              if ($bin -is [System.Array]) {
+                foreach ($entry in $bin) {
+                  Add-BinEntry -Entry $entry
+                }
+              } else {
+                Add-BinEntry -Entry $bin
+              }
+            }
+
+            if ($manifest.PSObject.Properties.Name -contains 'architecture') {
+              $arch = $manifest.architecture
+              if ($arch.PSObject.Properties.Name -contains '64bit') {
+                $a64 = $arch.'64bit'
+                if ($a64.PSObject.Properties.Name -contains 'bin') {
+                  $bin64 = $a64.bin
+                  if ($bin64 -is [System.Array]) {
+                    foreach ($entry in $bin64) {
+                      Add-BinEntry -Entry $entry
+                    }
+                  } else {
+                    Add-BinEntry -Entry $bin64
+                  }
+                }
+              }
+            }
+
+            return $commands | Sort-Object -Unique
+          }
+
+          function Invoke-SmokeCheck {
+            param(
+              [Parameter(Mandatory = $true)]
+              [string]$CommandName
+            )
+
+            $argsMatrix = @(
+              @('--version'),
+              @('version'),
+              @('-V'),
+              @('--help')
+            )
+
+            foreach ($argSet in $argsMatrix) {
+              try {
+                & $CommandName @argSet *> $null
+                if ($LASTEXITCODE -eq 0) {
+                  Write-Host "Smoke check passed: $CommandName $($argSet -join ' ')"
+                  return $true
+                }
+              } catch {
+              }
+            }
+
+            return $false
+          }
 
           foreach ($pkg in $packages) {
             Write-Host "Verifying $pkg"
             scoop list $pkg
+
+            $manifestFile = Join-Path $manifestDir "$pkg.json"
+            if (-not (Test-Path $manifestFile)) {
+              throw "Manifest file not found during verify: $manifestFile"
+            }
+
+            $commands = Get-BinCommandsFromManifest -ManifestFile $manifestFile
+            if (-not $commands -or $commands.Count -eq 0) {
+              throw "No bin commands found in manifest: $manifestFile"
+            }
+
+            foreach ($cmd in $commands) {
+              $resolved = Get-Command $cmd -ErrorAction SilentlyContinue
+              if (-not $resolved) {
+                throw "Expected command '$cmd' was not found on PATH after installing '$pkg'."
+              }
+
+              if (-not (Invoke-SmokeCheck -CommandName $cmd)) {
+                throw "Command '$cmd' installed but failed smoke checks (--version/version/-V/--help)."
+              }
+            }
           }
 
       - name: Uninstall
         if: always()
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Continue'
           $packagesRaw = '${{ steps.manifests.outputs.packages }}'
           if (-not [string]::IsNullOrWhiteSpace($packagesRaw)) {
             $packages = $packagesRaw.Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)
             foreach ($pkg in $packages) {
-              scoop uninstall $pkg
+              scoop uninstall $pkg *> $null
             }
           }
-
-          scoop bucket rm ci-bucket
