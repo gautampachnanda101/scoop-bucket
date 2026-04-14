@@ -1,12 +1,12 @@
 {
-  "version": "0.1.0-rc62",
+  "version": "0.1.0-rc64",
   "description": "Local-first encrypted prompt intelligence CLI for AI coding assistants",
   "homepage": "https://github.com/gautampachnanda101/prompt-detective",
   "license": "Proprietary",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.1.0-rc62/promptx_Windows_x86_64.zip",
-      "hash": "03f427946c118eacecea885b4cdfba3443cb84daecbd82755cc83c78def200ec"
+      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.1.0-rc64/promptx_Windows_x86_64.zip",
+      "hash": "f21ca96a9be5ba269471a48964c9e30bc5c2409b0a986382eae07ec6dc961253"
     }
   },
   "bin": "promptx.exe",
@@ -16,13 +16,23 @@
     "Write-Host '  [System.Environment]::SetEnvironmentVariable(\"PROMPTX_PASSKEY\", \"your-passkey\", \"User\")'",
     "Write-Host 'Then run: promptx setup'",
     "Write-Host ''",
-    "$vsix = \"$dir/promptx-vscode-0.1.0-rc62.vsix\"",
-    "if ((Test-Path $vsix) -and (Get-Command code -ErrorAction SilentlyContinue)) {",
-    "    code --install-extension $vsix",
-    "    Write-Host 'Promptx VS Code extension installed.'",
+    "$vsix = \"$dir/promptx-vscode-0.1.0-rc64.vsix\"",
+    "$installed = $false",
+    "if (Test-Path $vsix) {",
+    "    foreach ($editor in @('code','cursor','codium','code-insiders')) {",
+    "        if (Get-Command $editor -ErrorAction SilentlyContinue) {",
+    "            & $editor --install-extension $vsix --force",
+    "            if ($LASTEXITCODE -eq 0) { $installed = $true }",
+    "        }",
+    "    }",
+    "}",
+    "if ($installed) {",
+    "    Write-Host 'Promptx extension installed into detected VS Code-family editor(s).'",
     "} else {",
-    "    Write-Host 'To install the Promptx VS Code extension:'",
+    "    Write-Host 'To install the Promptx extension manually:'",
     "    Write-Host \"  code --install-extension $vsix\"",
+    "    Write-Host \"  cursor --install-extension $vsix\"",
+    "    Write-Host \"  codium --install-extension $vsix\"",
     "}"
   ],
   "checkver": {
