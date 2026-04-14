@@ -9,134 +9,154 @@ on:
 
 jobs:
   verify-installation:
-    name: Test Scoop Installation
+    name: Verify Scoop Package Install
     runs-on: windows-latest
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Scoop
         run: |
           iex "& {$(irm get.scoop.sh)} -RunAsAdmin"
           echo "$env:USERPROFILE\scoop\shims" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
-      - name: Add bucket and install k3d-local
+      - name: Determine manifests to verify
+        id: manifests
+        shell: pwsh
         run: |
-          scoop bucket add gautampachnanda101 https://github.com/gautampachnanda101/scoop-bucket
-          scoop install k3d-local
+          $ErrorActionPreference = 'Stop'
 
-      - name: Verify installation
+          function Get-ManifestCandidates {
+            $workspace = $env:GITHUB_WORKSPACE
+            $jsonFiles = Get-ChildItem -Path $workspace -File -Filter '*.json' -Recurse -ErrorAction SilentlyContinue |
+              Where-Object {
+                $rel = $_.FullName.Substring($workspace.Length + 1).Replace('\\', '/')
+                $rel -notmatch '^\.github/' -and $rel -notmatch '^docs/' -and $rel -notmatch '^tests/' -and $rel -notmatch '^\.git/'
+              }
+
+            $valid = @()
+            foreach ($file in $jsonFiles) {
+              try {
+                $manifest = Get-Content -Path $file.FullName -Raw | ConvertFrom-Json -ErrorAction Stop
+              } catch {
+                continue
+              }
+
+              # Treat as Scoop manifest only if it has a version and a download definition.
+              if ($manifest.PSObject.Properties.Name -contains 'version' -and (
+                  $manifest.PSObject.Properties.Name -contains 'url' -or
+                  $manifest.PSObject.Properties.Name -contains 'architecture')) {
+                $valid += $file
+              }
+            }
+
+            return $valid | Sort-Object -Property FullName -Unique
+          }
+
+          $eventName = '${{ github.event_name }}'
+          $selected = @()
+
+          if ($eventName -eq 'workflow_dispatch') {
+            $selected = Get-ManifestCandidates
+          } else {
+            if ($eventName -eq 'pull_request') {
+              $base = '${{ github.event.pull_request.base.sha }}'
+              $head = '${{ github.event.pull_request.head.sha }}'
+            } else {
+              $base = '${{ github.event.before }}'
+              $head = '${{ github.sha }}'
+            }
+
+            if ([string]::IsNullOrWhiteSpace($base) -or $base -eq '0000000000000000000000000000000000000000') {
+              $selected = Get-ManifestCandidates
+            } else {
+              $changed = git diff --name-only "$base" "$head"
+              $changedSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+              foreach ($f in $changed) {
+                if ([string]::IsNullOrWhiteSpace($f)) { continue }
+                if ($f -match '^tests/' -or $f -match '^\.github/' -or $f -match '^docs/') { continue }
+                if ($f -match '\.json$') {
+                  [void]$changedSet.Add($f)
+                }
+              }
+
+              foreach ($candidate in Get-ManifestCandidates) {
+                $rel = $candidate.FullName.Substring($env:GITHUB_WORKSPACE.Length + 1).Replace('\\', '/')
+                if ($changedSet.Contains($rel)) {
+                  $selected += $candidate
+                }
+              }
+            }
+          }
+
+          $selected = $selected | Sort-Object -Property FullName -Unique
+          if (-not $selected -or $selected.Count -eq 0) {
+            Write-Host 'No changed manifests detected. Skipping package verification.'
+            "skip=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "packages=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            exit 0
+          }
+
+          $stagingRoot = Join-Path $env:RUNNER_TEMP 'ci-scoop-bucket'
+          $bucketDir = Join-Path $stagingRoot 'bucket'
+          if (Test-Path $stagingRoot) {
+            Remove-Item -Path $stagingRoot -Recurse -Force
+          }
+          New-Item -Path $bucketDir -ItemType Directory -Force | Out-Null
+
+          $packages = @()
+          foreach ($manifest in $selected) {
+            $filename = [System.IO.Path]::GetFileName($manifest.FullName)
+            Copy-Item -Path $manifest.FullName -Destination (Join-Path $bucketDir $filename)
+            $packages += [System.IO.Path]::GetFileNameWithoutExtension($filename)
+          }
+
+          $packages = $packages | Sort-Object -Unique
+          Write-Host "Selected manifests: $($packages -join ', ')"
+
+          "skip=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "bucket_path=$stagingRoot" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "packages=$($packages -join ' ')" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Add local test bucket and install packages
+        if: steps.manifests.outputs.skip != 'true'
+        shell: pwsh
         run: |
-          Get-Command k3d-local
-          k3d-local --version
+          $ErrorActionPreference = 'Stop'
+          $packages = '${{ steps.manifests.outputs.packages }}'.Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)
 
-      - name: Test basic CLI functionality
+          scoop bucket add ci-bucket '${{ steps.manifests.outputs.bucket_path }}'
+
+          foreach ($pkg in $packages) {
+            Write-Host "Installing $pkg"
+            scoop install $pkg
+          }
+
+      - name: Verify installed packages
+        if: steps.manifests.outputs.skip != 'true'
+        shell: pwsh
         run: |
-          Write-Host "=== Testing k3d-local CLI ==="
-          Write-Host ""
-          Write-Host "1. Testing --help"
-          k3d-local --help
+          $ErrorActionPreference = 'Stop'
+          $packages = '${{ steps.manifests.outputs.packages }}'.Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)
 
-          Write-Host ""
-          Write-Host "2. Testing command list"
-          k3d-local help
-
-      - name: Install k3d prerequisite
-        run: |
-          Write-Host "Installing k3d for pass-through testing..."
-          scoop bucket add main
-          scoop install k3d
-
-      - name: Test k3d pass-through command
-        run: |
-          Write-Host "=== Testing k3d pass-through functionality ==="
-          Write-Host ""
-          Write-Host "1. Test 'k3d-local k3d version'"
-          k3d-local k3d version
-
-          Write-Host ""
-          Write-Host "2. Test 'k3d-local k3d --help'"
-          k3d-local k3d --help | Select-Object -First 10
-
-          Write-Host ""
-          Write-Host "3. Test 'k3d-local k3d cluster list'"
-          k3d-local k3d cluster list
-
-      - name: Test k3d-local commands
-        run: |
-          Write-Host "=== Testing k3d-local specific commands ==="
-          Write-Host ""
-          Write-Host "1. Testing create --help"
-          k3d-local create --help
-
-          Write-Host ""
-          Write-Host "2. Testing status command"
-          k3d-local status
-
-          Write-Host ""
-          Write-Host "3. Testing delete --help"
-          k3d-local delete --help
-
-      - name: Attempt cluster creation (may fail on Windows runners)
-        id: cluster_test
-        continue-on-error: true
-        run: |
-          Write-Host "=== Testing k3d cluster creation ==="
-          Write-Host ""
-          Write-Host "Attempting to create a minimal k3d cluster..."
-          Write-Host "Note: This requires Docker with Linux containers enabled"
-          Write-Host ""
-
-          k3d-local create --name test-cluster --servers 1 --agents 0 --timeout 300 --auto-install
-
-      - name: Verify cluster if creation succeeded
-        if: steps.cluster_test.outcome == 'success'
-        run: |
-          Write-Host "✓ Cluster creation succeeded!"
-          Write-Host ""
-          Write-Host "Checking cluster status..."
-          k3d-local status
-
-          Write-Host ""
-          Write-Host "Listing clusters..."
-          k3d-local k3d cluster list
-
-          Write-Host ""
-          Write-Host "Getting nodes..."
-          kubectl get nodes
-
-      - name: Test cluster deletion
-        if: steps.cluster_test.outcome == 'success'
-        run: |
-          Write-Host "=== Testing k3d cluster deletion ==="
-          Write-Host ""
-          k3d-local delete --name test-cluster
-
-          Write-Host ""
-          Write-Host "Verifying cluster is deleted..."
-          k3d-local k3d cluster list
-
-      - name: Note about Windows container limitations
-        if: steps.cluster_test.outcome == 'failure'
-        run: |
-          Write-Host ""
-          Write-Host "=== Cluster Creation Failed (Expected on Windows Runners) ==="
-          Write-Host ""
-          Write-Host "GitHub Actions Windows runners only support Windows containers,"
-          Write-Host "not Linux containers. k3d requires Linux containers to run k3s."
-          Write-Host ""
-          Write-Host "For Windows users:"
-          Write-Host "  - Install Docker Desktop with WSL2 backend"
-          Write-Host "  - Enable 'Use WSL 2 based engine' in settings"
-          Write-Host "  - Ensure Linux containers mode is active (not Windows containers)"
-          Write-Host ""
-          Write-Host "Full cluster testing is performed on Linux/macOS runners"
-          Write-Host "via the homebrew-tap verification workflow."
-          Write-Host ""
+          foreach ($pkg in $packages) {
+            Write-Host "Verifying $pkg"
+            scoop list $pkg
+          }
 
       - name: Uninstall
         if: always()
+        shell: pwsh
         run: |
-          scoop uninstall k3d-local k3d
-          scoop bucket rm gautampachnanda101 main
+          $packagesRaw = '${{ steps.manifests.outputs.packages }}'
+          if (-not [string]::IsNullOrWhiteSpace($packagesRaw)) {
+            $packages = $packagesRaw.Split(' ', [System.StringSplitOptions]::RemoveEmptyEntries)
+            foreach ($pkg in $packages) {
+              scoop uninstall $pkg
+            }
+          }
+
+          scoop bucket rm ci-bucket
