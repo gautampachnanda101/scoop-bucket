@@ -29,21 +29,24 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
 
-          function Get-AllBucketManifests {
-            $bucketPath = Join-Path $env:GITHUB_WORKSPACE 'bucket'
-            if (-not (Test-Path $bucketPath)) {
-              return @()
+          function Get-AllManifestCandidates {
+            $workspace = $env:GITHUB_WORKSPACE
+            $rootJson = Get-ChildItem -Path $workspace -File -Filter '*.json' -ErrorAction SilentlyContinue
+
+            $bucketPath = Join-Path $workspace 'bucket'
+            $bucketJson = @()
+            if (Test-Path $bucketPath) {
+              $bucketJson = Get-ChildItem -Path $bucketPath -File -Filter '*.json' -ErrorAction SilentlyContinue
             }
 
-            return Get-ChildItem -Path $bucketPath -File -Filter '*.json' -ErrorAction SilentlyContinue |
-              Sort-Object -Property FullName -Unique
+            return @($rootJson + $bucketJson) | Sort-Object -Property FullName -Unique
           }
 
           $eventName = '${{ github.event_name }}'
           $selected = @()
 
           if ($eventName -eq 'workflow_dispatch') {
-            $selected = Get-AllBucketManifests
+            $selected = Get-AllManifestCandidates
           } else {
             if ($eventName -eq 'pull_request') {
               $base = '${{ github.event.pull_request.base.sha }}'
@@ -54,13 +57,13 @@ jobs:
             }
 
             if ([string]::IsNullOrWhiteSpace($base) -or $base -eq '0000000000000000000000000000000000000000') {
-              $selected = Get-AllBucketManifests
+              $selected = Get-AllManifestCandidates
             } else {
               $changed = git diff --name-only "$base" "$head"
               $changedSet = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
               foreach ($f in $changed) {
                 if ([string]::IsNullOrWhiteSpace($f)) { continue }
-                if ($f -match '^bucket/[^/]+\.json$') {
+                if ($f -match '^bucket/[^/]+\.json$' -or $f -match '^[^/]+\.json$') {
                   [void]$changedSet.Add($f)
                 }
               }
