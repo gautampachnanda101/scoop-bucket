@@ -1,12 +1,12 @@
 {
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "The convenience of an env file. The power of a zero-trust vault.",
   "homepage": "https://github.com/gautampachnanda101/mypass",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.3.1/vaultx_Windows_x86_64.zip",
-      "hash": "e71f9cbd0a14845cb171dd71ec12f1049a6c76a8053257894b71d4d1e3f1cee6"
+      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.3.2/vaultx_Windows_x86_64.zip",
+      "hash": "fae8910fc35130d3b2618b4914385a207960e8095e2cd3bda17d8529c1369f8d"
     }
   },
   "bin": "vaultx.exe",
