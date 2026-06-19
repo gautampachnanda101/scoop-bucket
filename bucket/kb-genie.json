@@ -6,7 +6,7 @@
   "architecture": {
     "64bit": {
       "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/kb-genie-v1.0.0/kb-genie_Windows_x86_64.zip",
-      "hash": "3c6b65f33dbaeaf971087ba3a0f21a894a59e4becb19ab72a099bac459706355",
+      "hash": "f5a7537cc97c511103ac7f7dfa7f2863a986794cc59c848e1bd6cf232ee50037",
       "bin": "kb-genie.exe"
     }
   },
