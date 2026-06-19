@@ -5,8 +5,8 @@
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v1.0.0/kb-genie_Windows_x86_64.zip",
-      "hash": "265ff67d238a33a6ee97f7a1f3c449fa01851c20d2cf2879acfd6f3b9a9150c9",
+      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/kb-genie-v1.0.0/kb-genie_Windows_x86_64.zip",
+      "hash": "3c6b65f33dbaeaf971087ba3a0f21a894a59e4becb19ab72a099bac459706355",
       "bin": "kb-genie.exe"
     }
   },
