@@ -1,12 +1,12 @@
 {
-  "version": "1.3.3",
+  "version": "1.3.4",
   "description": "Local-first RAG knowledge base builder with pluggable embedding backends",
   "homepage": "https://github.com/gautampachnanda101/kb-genie",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/kb-genie-v1.3.3/kb-genie_Windows_x86_64.zip",
-      "hash": "d4ca84a24f67bff04a3ab5621809739dd21d6a2bc62b3ae3ccbc800b8b368737",
+      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/kb-genie-v1.3.4/kb-genie_Windows_x86_64.zip",
+      "hash": "8a8745097b54b27da29662a450552f562bafdd2958ec8d99b2f49c9f3221361f",
       "bin": "kb-genie.exe"
     }
   },
