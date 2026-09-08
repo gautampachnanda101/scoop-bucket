@@ -1,12 +1,12 @@
 {
-  "version": "0.7.3",
+  "version": "0.7.4",
   "description": "Local-first encrypted prompt intelligence CLI for AI coding assistants",
   "homepage": "https://github.com/gautampachnanda101/prompt-detective",
   "license": "Proprietary",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.7.3/promptx_Windows_x86_64.zip",
-      "hash": "4205aa46d0939ac1bcdc8d7df5a791a1e3835e56b02a4b967867afd6c344885e"
+      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.7.4/promptx_Windows_x86_64.zip",
+      "hash": "fc17a427f178f8a257ae08b6fb0e34bbc77addf72f032acd41819a25ac66697b"
     }
   },
   "bin": "promptx.exe",
@@ -16,7 +16,7 @@
     "Write-Host '  [System.Environment]::SetEnvironmentVariable(\"PROMPTX_PASSKEY\", \"your-passkey\", \"User\")'",
     "Write-Host 'Then run: promptx setup'",
     "Write-Host ''",
-    "$vsix = \"$dir/promptx-vscode-0.7.3.vsix\"",
+    "$vsix = \"$dir/promptx-vscode-0.7.4.vsix\"",
     "$installed = $false",
     "if (Test-Path $vsix) {",
     "    foreach ($editor in @('code','cursor','codium','code-insiders')) {",
