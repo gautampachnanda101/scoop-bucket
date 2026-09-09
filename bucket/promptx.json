@@ -6,7 +6,7 @@
   "architecture": {
     "64bit": {
       "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.8.0-rc3/promptx_Windows_x86_64.zip",
-      "hash": "12238ce37373d7926d7ba61fdf17b794df07c2d4df5964da60390aff1957474d"
+      "hash": "f328147d1f7b3bcacebdbe179a77cfcf6b046d2ee5da9ca83bd8996c07870ca2"
     }
   },
   "bin": "promptx.exe",
