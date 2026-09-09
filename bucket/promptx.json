@@ -1,39 +1,22 @@
 {
-  "version": "0.7.4",
+  "version": "0.8.0-rc1",
   "description": "Local-first encrypted prompt intelligence CLI for AI coding assistants",
-  "homepage": "https://github.com/gautampachnanda101/prompt-detective",
+  "homepage": "https://gautampachnanda101.github.io/homebrew-tap/",
   "license": "Proprietary",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.7.4/promptx_Windows_x86_64.zip",
-      "hash": "fc17a427f178f8a257ae08b6fb0e34bbc77addf72f032acd41819a25ac66697b"
+      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.8.0-rc1/promptx_Windows_x86_64.zip",
+      "hash": "01d2097f49766d8174971b312d7e86ec8a23e4ef70705d451937f6c7ef0b159b"
     }
   },
   "bin": "promptx.exe",
   "post_install": [
     "Write-Host ''",
-    "Write-Host 'Promptx installed. Add your passkey to your shell profile:'",
-    "Write-Host '  [System.Environment]::SetEnvironmentVariable(\"PROMPTX_PASSKEY\", \"your-passkey\", \"User\")'",
-    "Write-Host 'Then run: promptx setup'",
+    "Write-Host 'Promptx installed. First run:'",
+    "Write-Host '  promptx setup    # creates the vault; stores the passkey in Windows Credential Manager'",
+    "Write-Host '  promptx extension install    # installs the IDE extension into detected editors'",
     "Write-Host ''",
-    "$vsix = \"$dir/promptx-vscode-0.7.4.vsix\"",
-    "$installed = $false",
-    "if (Test-Path $vsix) {",
-    "    foreach ($editor in @('code','cursor','codium','code-insiders')) {",
-    "        if (Get-Command $editor -ErrorAction SilentlyContinue) {",
-    "            & $editor --install-extension $vsix --force",
-    "            if ($LASTEXITCODE -eq 0) { $installed = $true }",
-    "        }",
-    "    }",
-    "}",
-    "if ($installed) {",
-    "    Write-Host 'Promptx extension installed into detected VS Code-family editor(s).'",
-    "} else {",
-    "    Write-Host 'To install the Promptx extension manually:'",
-    "    Write-Host \"  code --install-extension $vsix\"",
-    "    Write-Host \"  cursor --install-extension $vsix\"",
-    "    Write-Host \"  codium --install-extension $vsix\"",
-    "}"
+    "Write-Host 'Docs: https://gautampachnanda101.github.io/homebrew-tap/'"
   ],
   "checkver": {
     "github": "https://github.com/gautampachnanda101/homebrew-tap"
