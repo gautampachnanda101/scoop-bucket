@@ -1,12 +1,12 @@
 {
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Local-first encrypted prompt intelligence CLI for AI coding assistants",
   "homepage": "https://gautampachnanda101.github.io/homebrew-tap/",
   "license": "Proprietary",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.8.0/promptx_Windows_x86_64.zip",
-      "hash": "af0e62e883891fdb26d65360d45c7eb3d527acd64899dfc735684b3e13f95c19"
+      "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/v0.9.0/promptx_Windows_x86_64.zip",
+      "hash": "96785923de7f7e00ae48ba666dcc55734442968042468b1d267d685f2e344617"
     }
   },
   "bin": "promptx.exe",
