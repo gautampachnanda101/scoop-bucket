@@ -1,12 +1,12 @@
 {
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "AI Guardrails CLI - Enforce clean code, XP, and TDD in any repo. Colorful output, emoji, and CI guardrails.",
   "homepage": "https://github.com/gautampachnanda101/ai-guard-cli",
   "license": "MIT",
   "architecture": {
     "64bit": {
-      "url": "https://github.com/gautampachnanda101/ai-guard-cli/releases/download/v0.6.0/ai-guardrails_Windows_x86_64.zip",
-      "hash": "5b7892711ae86fa04f355fb4532b5553e2d59dc092346d1e1a700cea350dee77"
+      "url": "https://github.com/gautampachnanda101/ai-guard-cli/releases/download/v0.6.1/ai-guardrails_Windows_x86_64.zip",
+      "hash": "b1d7909f3f3269c2d79164bf5b9ccaf9f66d7e17e87b688d93b3e1c623828b7c"
     }
   },
   "bin": ["ai-guardrails.exe"],
@@ -16,7 +16,7 @@
   "autoupdate": {
     "architecture": {
       "64bit": {
-        "url": "https://github.com/gautampachnanda101/ai-guard-cli/releases/download/v0.6.0/ai-guardrails_Windows_x86_64.zip"
+        "url": "https://github.com/gautampachnanda101/ai-guard-cli/releases/download/v0.6.1/ai-guardrails_Windows_x86_64.zip"
       }
     }
   }
