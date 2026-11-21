@@ -1,9 +1,9 @@
 {
-  "version": "0.7.7",
+  "version": "0.7.8",
   "description": "Offline GCSE revision app with a built-in AI helper",
   "homepage": "https://github.com/gautampachnanda101/gcse-revision-assistant",
   "architecture": {
-    "64bit": { "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/gcse-revision-v0.7.7/gcse-revision_Windows_x86_64.zip", "hash": "b064bbd055a1f55a7627615fdd76ff0929154dcfb7dd638837eb38ce1572e00b", "bin": "gcse-revision.exe" },
-    "arm64": { "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/gcse-revision-v0.7.7/gcse-revision_Windows_arm64.zip", "hash": "abe710b3de53737b1260b94c417a4583fdef42b9e927976ad855fd6618902d8f", "bin": "gcse-revision.exe" }
+    "64bit": { "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/gcse-revision-v0.7.8/gcse-revision_Windows_x86_64.zip", "hash": "78302fcc5e2f67d84f068bf0b83c372c6775050dcbeaeb7a095b0ddefed64b6d", "bin": "gcse-revision.exe" },
+    "arm64": { "url": "https://github.com/gautampachnanda101/homebrew-tap/releases/download/gcse-revision-v0.7.8/gcse-revision_Windows_arm64.zip", "hash": "860659d946aabd9acae698588cb5447c5c2ca460ab2d15fa42bcc8a9a3ee7aff", "bin": "gcse-revision.exe" }
   }
 }
